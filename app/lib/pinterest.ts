@@ -17,8 +17,12 @@ export async function searchPinterestImages(
     
     // Puppeteerでブラウザを起動（Cloud Run対応）
     // Alpine LinuxのChromiumを使用（Dockerfileでインストール済み）
-    const chromiumPath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser';
+    const chromiumPath = process.env.PUPPETEER_EXECUTABLE_PATH || 
+                         process.env.CHROMIUM_PATH || 
+                         '/usr/bin/chromium-browser';
     let html = '';
+    
+    console.log(`Chromium path: ${chromiumPath}`);
     
     try {
       browser = await puppeteer.launch({
@@ -29,12 +33,36 @@ export async function searchPinterestImages(
           '--disable-dev-shm-usage',
           '--disable-accelerated-2d-canvas',
           '--no-first-run',
-          '--no-zygote',
-          '--single-process',
           '--disable-gpu',
+          '--disable-software-rasterizer',
+          '--disable-extensions',
+          '--disable-background-networking',
+          '--disable-background-timer-throttling',
+          '--disable-backgrounding-occluded-windows',
+          '--disable-breakpad',
+          '--disable-client-side-phishing-detection',
+          '--disable-default-apps',
+          '--disable-features=TranslateUI',
+          '--disable-hang-monitor',
+          '--disable-ipc-flooding-protection',
+          '--disable-popup-blocking',
+          '--disable-prompt-on-repost',
+          '--disable-renderer-backgrounding',
+          '--disable-sync',
+          '--disable-translate',
+          '--metrics-recording-only',
+          '--no-crash-upload',
+          '--no-default-browser-check',
+          '--no-pings',
+          '--no-zygote',
+          '--use-gl=swiftshader',
+          '--window-size=1920,1080',
         ],
         executablePath: chromiumPath,
+        timeout: 60000,
       });
+      
+      console.log('Puppeteer起動成功');
       
       const page = await browser.newPage();
       
