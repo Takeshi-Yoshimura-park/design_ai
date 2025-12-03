@@ -9,7 +9,7 @@ export async function searchPinterestImages(
   query: string,
   limit: number = 5
 ): Promise<PinterestImage[]> {
-  let browser;
+  let browser: any = null;
   try {
     const searchUrl = `https://www.pinterest.jp/search/pins/?q=${encodeURIComponent(query)}`;
     
@@ -18,6 +18,7 @@ export async function searchPinterestImages(
     // Puppeteerでブラウザを起動（Cloud Run対応）
     // Alpine LinuxのChromiumを使用（Dockerfileでインストール済み）
     const chromiumPath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser';
+    let html = '';
     
     try {
       browser = await puppeteer.launch({
@@ -34,39 +35,45 @@ export async function searchPinterestImages(
         ],
         executablePath: chromiumPath,
       });
+      
+      const page = await browser.newPage();
+      
+      try {
+        // User-Agentを設定
+        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+        
+        // ページにアクセスしてJavaScriptを実行
+        // waitUntil: 'networkidle2' はネットワーク接続が2つ以下になるまで待つ
+        await page.goto(searchUrl, { 
+          waitUntil: 'networkidle2',
+          timeout: 30000 
+        });
+        
+        // 追加の待機時間（JavaScriptで動的に読み込まれるコンテンツ用）
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        
+        // 画像要素が表示されるまで待つ（最大10秒）
+        try {
+          await page.waitForSelector('img[src*="pinimg.com"]', { timeout: 10000 });
+        } catch (e) {
+          console.log('画像要素の待機がタイムアウトしましたが、続行します');
+        }
+        
+        // HTMLを取得
+        html = await page.content();
+      } finally {
+        await page.close();
+      }
     } catch (puppeteerError: any) {
       console.error('Puppeteer起動失敗:', puppeteerError.message);
       console.error('Chromium path:', chromiumPath);
       throw new Error(`Puppeteerの起動に失敗しました: ${puppeteerError.message}`);
+    } finally {
+      if (browser) {
+        await browser.close();
+        browser = null;
+      }
     }
-    
-    const page = await browser.newPage();
-    
-    // User-Agentを設定
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
-    
-    // ページにアクセスしてJavaScriptを実行
-    await page.goto(searchUrl, { 
-      waitUntil: 'networkidle2',
-      timeout: 30000 
-    });
-    
-    // 画像が読み込まれるまで少し待つ
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    
-    // 画像要素が表示されるまで待つ（最大10秒）
-    try {
-      await page.waitForSelector('img[src*="pinimg.com"]', { timeout: 10000 });
-    } catch (e) {
-      console.log('画像要素の待機がタイムアウトしましたが、続行します');
-    }
-    
-    // HTMLを取得
-    const html = await page.content();
-    
-    // ブラウザを閉じる
-    await browser.close();
-    browser = null;
 
     const $ = cheerio.load(html);
     const images: PinterestImage[] = [];
