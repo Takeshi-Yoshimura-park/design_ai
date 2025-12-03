@@ -1,7 +1,6 @@
 import * as cheerio from 'cheerio';
 import axios from 'axios';
 import puppeteer from 'puppeteer-core';
-import chromium from '@sparticuz/chromium';
 
 /**
  * Pinterest検索結果から画像URLを取得
@@ -17,41 +16,28 @@ export async function searchPinterestImages(
     console.log(`Pinterest検索URL: ${searchUrl}`);
     
     // Puppeteerでブラウザを起動（Cloud Run対応）
-    const isProduction = process.env.NODE_ENV === 'production';
+    // Alpine LinuxのChromiumを使用（Dockerfileでインストール済み）
+    const chromiumPath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser';
     
     try {
-      if (isProduction) {
-        // 本番環境（Cloud Run）: @sparticuz/chromiumを使用
-        browser = await puppeteer.launch({
-          args: [...chromium.args, '--hide-scrollbars', '--disable-web-security'],
-          defaultViewport: { width: 1920, height: 1080 },
-          executablePath: await chromium.executablePath(),
-          headless: true,
-        });
-      } else {
-        // 開発環境: システムのChromiumを使用（フォールバックあり）
-        const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser';
-        browser = await puppeteer.launch({
-          headless: true,
-          args: ['--no-sandbox', '--disable-setuid-sandbox'],
-          executablePath: executablePath,
-        });
-      }
-    } catch (puppeteerError: any) {
-      console.warn('Puppeteer起動失敗、Cheerioでフォールバック:', puppeteerError.message);
-      // Puppeteerが使えない場合は、従来の方法で試す
-      const response = await axios.get(searchUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-          'Accept-Language': 'ja,en-US;q=0.9,en;q=0.8',
-          'Referer': 'https://www.pinterest.jp/',
-        },
-        timeout: 15000,
+      browser = await puppeteer.launch({
+        headless: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-accelerated-2d-canvas',
+          '--no-first-run',
+          '--no-zygote',
+          '--single-process',
+          '--disable-gpu',
+        ],
+        executablePath: chromiumPath,
       });
-      const $ = cheerio.load(response.data);
-      // 以下、既存のCheerioロジックを使用（後で実装）
-      throw new Error('PinterestはJavaScriptで動的にコンテンツを読み込むため、Puppeteerが必要です。開発環境ではPuppeteerをインストールしてください。');
+    } catch (puppeteerError: any) {
+      console.error('Puppeteer起動失敗:', puppeteerError.message);
+      console.error('Chromium path:', chromiumPath);
+      throw new Error(`Puppeteerの起動に失敗しました: ${puppeteerError.message}`);
     }
     
     const page = await browser.newPage();
