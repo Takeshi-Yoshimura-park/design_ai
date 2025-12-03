@@ -205,14 +205,18 @@ export async function searchPinterestImages(
           
           // サムネイルURLを高解像度URLに変換
           let highResUrl = src;
-          if (src.includes('236x') || src.includes('474x')) {
-            highResUrl = src.replace(/236x/, '564x').replace(/474x/, '564x');
+          if (src.includes('236x')) {
+            highResUrl = src.replace(/236x/, '564x');
+          } else if (src.includes('474x')) {
+            highResUrl = src.replace(/474x/, '564x');
           } else if (src.includes('originals')) {
             highResUrl = src;
           } else if (src.includes('564x')) {
             // 既に564xの場合はそのまま
             highResUrl = src;
           }
+          
+          console.log(`高解像度URL変換: ${src.substring(0, 100)}... -> ${highResUrl.substring(0, 100)}...`);
           
           console.log(`画像URL取得（imgタグ）: ${src.substring(0, 150)}...`);
           

@@ -82,14 +82,12 @@ function DraggableImage({ image, index, onRemove }: DraggableImageProps) {
       >
         <div className="aspect-square relative bg-gray-100">
           {!imageError ? (
-            <Image
+            <img
               src={imageSrc}
               alt={image.alt || `画像 ${index + 1}`}
-              fill
-              className="object-cover"
-              sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 20vw"
-              unoptimized
+              className="h-full w-full object-cover"
               onError={handleImageError}
+              crossOrigin="anonymous"
             />
           ) : (
             <img
