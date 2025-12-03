@@ -39,9 +39,29 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('Pinterest search error:', error);
+    console.error('Error stack:', error.stack);
+    console.error('Error details:', JSON.stringify(error, null, 2));
+    
+    // エラーメッセージを適切に処理
+    let errorMessage = '検索に失敗しました。別の検索軸をお試しください';
+    let errorDetails = error.message || 'Unknown error';
+    
+    if (error.message?.includes('timeout')) {
+      errorMessage = '検索がタイムアウトしました。しばらく待ってから再度お試しください';
+    } else if (error.message?.includes('ENOTFOUND') || error.message?.includes('ECONNREFUSED')) {
+      errorMessage = 'ネットワークエラーが発生しました。インターネット接続を確認してください';
+    } else if (error.message?.includes('403') || error.message?.includes('Forbidden')) {
+      errorMessage = 'Pinterestへのアクセスが拒否されました。しばらく待ってから再度お試しください';
+    }
+
+    // 開発環境では詳細なエラー情報を返す
+    const isDevelopment = process.env.NODE_ENV === 'development';
     
     return NextResponse.json(
-      { error: '検索に失敗しました。別の検索軸をお試しください' },
+      { 
+        error: errorMessage,
+        ...(isDevelopment && { details: errorDetails })
+      },
       { status: 500 }
     );
   }

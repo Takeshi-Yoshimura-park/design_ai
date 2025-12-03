@@ -4,7 +4,7 @@ import { useState } from 'react';
 import ImageUploader from '@/components/ImageUploader';
 import AnalysisResult from '@/components/AnalysisResult';
 import SearchAxisSelector from '@/components/SearchAxisSelector';
-import ImageGrid from '@/components/ImageGrid';
+import DraggableImageGrid from '@/components/DraggableImageGrid';
 import Image from 'next/image';
 
 interface AnalysisResultData {
@@ -133,10 +133,21 @@ export default function Home() {
     setSearchResults((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const handleImagesReorder = (index: number, newImages: PinterestImage[]) => {
+    setSearchResults((prev) => {
+      const newResults = [...prev];
+      newResults[index] = {
+        ...newResults[index],
+        images: newImages,
+      };
+      return newResults;
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="mb-8 text-center text-3xl font-bold text-gray-800">
+      <div className="container mx-auto px-4 py-4 sm:py-8">
+        <h1 className="mb-6 text-center text-2xl font-bold text-gray-800 sm:mb-8 sm:text-3xl">
           イメージボード作成ツール
         </h1>
 
@@ -165,15 +176,15 @@ export default function Home() {
         {/* アップロード済み画像と分析結果 */}
         {uploadedImage && imagePreview && (
           <div className="mb-8">
-            <div className="mb-6 flex flex-col items-center gap-6">
+            <div className="mb-6 flex flex-col items-center gap-4 sm:gap-6">
               {/* 元画像 */}
-              <div className="relative">
+              <div className="relative w-full max-w-md">
                 <Image
                   src={imagePreview}
                   alt="アップロードした画像"
                   width={400}
                   height={400}
-                  className="max-h-[400px] max-w-full rounded-lg border border-gray-200 object-contain shadow-md"
+                  className="w-full max-h-[300px] sm:max-h-[400px] rounded-lg border border-gray-200 object-contain shadow-md"
                 />
                 {isAnalyzing && (
                   <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black bg-opacity-50">
@@ -201,10 +212,11 @@ export default function Home() {
           <div className="space-y-8">
             {searchResults.map((result, index) => (
               <div key={index} className="rounded-lg border border-gray-200 bg-white p-6">
-                <ImageGrid
+                <DraggableImageGrid
                   images={result.images}
                   title={result.axis}
                   onRemove={() => handleRemoveSearchResult(index)}
+                  onImagesReorder={(newImages) => handleImagesReorder(index, newImages)}
                 />
               </div>
             ))}

@@ -23,7 +23,7 @@ interface AnalysisResultProps {
 
 export default function AnalysisResult({ result, onSearchAxisSelect }: AnalysisResultProps) {
   return (
-    <div className="w-full max-w-2xl rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+    <div className="w-full max-w-2xl rounded-lg border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
       <h2 className="mb-4 text-xl font-semibold text-gray-800">分析結果</h2>
 
       {/* カラー */}
