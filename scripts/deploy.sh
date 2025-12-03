@@ -34,9 +34,9 @@ IMAGE_URI="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/${IMAGE_NAME}:lat
 echo ""
 echo -e "${YELLOW}📦 Dockerイメージをビルドしています...${NC}"
 
-# Dockerイメージをビルド
+# Dockerイメージをビルド（amd64プラットフォーム用）
 cd app
-docker build -t ${IMAGE_URI} .
+docker build --platform linux/amd64 -t ${IMAGE_URI} .
 
 echo -e "${GREEN}✓ イメージのビルドが完了しました${NC}"
 
