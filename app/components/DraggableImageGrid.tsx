@@ -60,8 +60,8 @@ function DraggableImage({ image, index, onRemove }: DraggableImageProps) {
     ? `/api/image-proxy?url=${encodeURIComponent(image.url)}`
     : '';
   
-  // デバッグ: 画像URLを確認
-  if (typeof window !== 'undefined' && !imageError) {
+  // デバッグ: 画像URLを確認（開発環境のみ）
+  if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined' && !imageError) {
     console.log('画像URL:', {
       thumbnailUrl: image.thumbnailUrl,
       url: image.url,
@@ -71,12 +71,14 @@ function DraggableImage({ image, index, onRemove }: DraggableImageProps) {
 
   // 画像URLが無効な場合のフォールバック
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-    console.error('画像の読み込みに失敗しました:', {
-      thumbnailUrl: image.thumbnailUrl,
-      url: image.url,
-      imageSrc: imageSrc,
-      error: e,
-    });
+    if (process.env.NODE_ENV === 'development') {
+      console.error('画像の読み込みに失敗しました:', {
+        thumbnailUrl: image.thumbnailUrl,
+        url: image.url,
+        imageSrc: imageSrc,
+        error: e,
+      });
+    }
     
     if (!imageError) {
       setImageError(true);
@@ -102,11 +104,13 @@ function DraggableImage({ image, index, onRemove }: DraggableImageProps) {
           // PinterestのURLを優先的に使用
           const targetUrl = image.pinterestUrl || image.url;
           
-          console.log('画像クリック:', {
-            pinterestUrl: image.pinterestUrl,
-            url: image.url,
-            targetUrl: targetUrl,
-          });
+          if (process.env.NODE_ENV === 'development') {
+            console.log('画像クリック:', {
+              pinterestUrl: image.pinterestUrl,
+              url: image.url,
+              targetUrl: targetUrl,
+            });
+          }
           
           if (targetUrl && targetUrl.startsWith('http')) {
             // PinterestのURLかどうかを確認
@@ -143,10 +147,14 @@ function DraggableImage({ image, index, onRemove }: DraggableImageProps) {
                 }}
                 onError={handleImageError}
                 onLoad={() => {
-                  console.log('✅ 画像読み込み成功:', imageSrc.substring(0, 100));
+                  if (process.env.NODE_ENV === 'development') {
+                    console.log('✅ 画像読み込み成功:', imageSrc.substring(0, 100));
+                  }
                 }}
                 onLoadStart={() => {
-                  console.log('🔄 画像読み込み開始:', imageSrc.substring(0, 100));
+                  if (process.env.NODE_ENV === 'development') {
+                    console.log('🔄 画像読み込み開始:', imageSrc.substring(0, 100));
+                  }
                 }}
                 onClick={(e) => {
                   e.stopPropagation(); // 親要素のクリックイベントを防ぐ
@@ -154,11 +162,13 @@ function DraggableImage({ image, index, onRemove }: DraggableImageProps) {
                   // PinterestのURLを優先的に使用
                   const targetUrl = image.pinterestUrl || image.url;
                   
-                  console.log('画像クリック:', {
-                    pinterestUrl: image.pinterestUrl,
-                    url: image.url,
-                    targetUrl: targetUrl,
-                  });
+                  if (process.env.NODE_ENV === 'development') {
+                    console.log('画像クリック:', {
+                      pinterestUrl: image.pinterestUrl,
+                      url: image.url,
+                      targetUrl: targetUrl,
+                    });
+                  }
                   
                   if (targetUrl && targetUrl.startsWith('http')) {
                     // PinterestのURLかどうかを確認
@@ -195,11 +205,12 @@ function DraggableImage({ image, index, onRemove }: DraggableImageProps) {
               e.stopPropagation();
               onRemove();
             }}
-            className="absolute right-2 top-2 rounded-full bg-white p-1 opacity-0 shadow-sm transition-opacity group-hover:opacity-100 hover:bg-red-50"
+            className="absolute right-2 top-2 z-30 rounded-full bg-white p-1.5 opacity-0 shadow-md transition-all group-hover:opacity-100 hover:bg-red-50 hover:scale-110"
             aria-label="画像を削除"
+            title="画像を削除"
           >
             <svg
-              className="h-4 w-4 text-gray-600"
+              className="h-4 w-4 text-red-600"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -306,11 +317,17 @@ export default function DraggableImageGrid({
   return (
     <div className="w-full">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
+        <div className="flex items-center gap-3">
+          <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
+          <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">
+            {items.length}枚
+          </span>
+        </div>
         {onRemove && (
           <button
             onClick={onRemove}
             className="rounded-lg border border-red-300 bg-red-50 px-3 py-1 text-sm font-medium text-red-700 transition-colors hover:bg-red-100"
+            aria-label="検索結果を削除"
           >
             削除
           </button>
