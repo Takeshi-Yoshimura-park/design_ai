@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { searchPinterestPins } from '@/lib/pinterest-api';
+import { searchGoogleImages } from '@/lib/google-image-search';
 import { generateSearchQuery } from '@/lib/pinterest-queries';
 
 /**
- * Pinterest検索API（Pinterest API使用）
- * POST /api/search/pinterest
+ * Google画像検索API
+ * POST /api/search/google-images
  */
 export async function POST(request: NextRequest) {
   try {
@@ -27,23 +27,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // アクセストークンの取得
-    const accessToken = process.env.PINTEREST_ACCESS_TOKEN;
-    if (!accessToken) {
-      console.error('PINTEREST_ACCESS_TOKENが設定されていません');
+    // APIキーとCSE IDの取得
+    const apiKey = process.env.GOOGLE_CUSTOM_SEARCH_API_KEY;
+    const cseId = process.env.GOOGLE_CUSTOM_SEARCH_ENGINE_ID;
+
+    if (!apiKey || !cseId) {
+      console.error('Google Custom Search APIの設定が不足しています');
+      console.error('GOOGLE_CUSTOM_SEARCH_API_KEY:', apiKey ? `設定済み (${apiKey.substring(0, 10)}...)` : '未設定');
+      console.error('GOOGLE_CUSTOM_SEARCH_ENGINE_ID:', cseId ? `設定済み (${cseId})` : '未設定');
+      
       return NextResponse.json(
-        { error: 'Pinterest APIのアクセストークンが設定されていません' },
+        { error: 'Google Custom Search APIの設定が完了していません。APIキーとCSE IDを確認してください' },
         { status: 500 }
       );
     }
 
-    // 検索クエリを生成
-    const query = generateSearchQuery(analysisResult, axis);
+    // デバッグ用: APIキーとCSE IDの先頭部分をログ出力（セキュリティのため一部のみ）
+    console.log('API Key (先頭10文字):', apiKey.substring(0, 10) + '...');
+    console.log('CSE ID:', cseId);
 
-    // Pinterest APIで検索
-    const images = await searchPinterestPins(query, accessToken, 5);
+    // 検索クエリを生成（Pinterestを優先）
+    const query = generateSearchQuery(analysisResult, axis, true);
 
-    console.log(`Pinterest API検索結果: ${images.length}枚の画像を取得`);
+    // Google画像検索を実行
+    const images = await searchGoogleImages(query, apiKey, cseId, 5);
+
+    console.log(`Google画像検索結果: ${images.length}枚の画像を取得`);
 
     return NextResponse.json({
       success: true,
@@ -51,15 +60,15 @@ export async function POST(request: NextRequest) {
       images: images,
     });
   } catch (error: any) {
-    console.error('Pinterest search error:', error);
+    console.error('Google image search error:', error);
     console.error('Error stack:', error.stack);
     
     // エラーメッセージを適切に処理
     let errorMessage = '検索に失敗しました。別の検索軸をお試しください';
     let statusCode = 500;
     
-    if (error.message?.includes('認証に失敗')) {
-      errorMessage = 'Pinterest APIの認証に失敗しました。アクセストークンを確認してください';
+    if (error.message?.includes('認証に失敗') || error.message?.includes('APIキー')) {
+      errorMessage = 'Google Custom Search APIの認証に失敗しました。APIキーを確認してください';
       statusCode = 401;
     } else if (error.message?.includes('レート制限')) {
       errorMessage = 'APIのレート制限に達しました。しばらく待ってから再度お試しください';

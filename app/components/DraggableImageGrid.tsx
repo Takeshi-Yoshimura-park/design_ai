@@ -51,16 +51,39 @@ function DraggableImage({ image, index, onRemove }: DraggableImageProps) {
 
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [imageError, setImageError] = useState(false);
+  
   // 画像プロキシAPIを使用してCORS問題を回避
-  const imageSrc = imageError 
-    ? image.thumbnailUrl || image.url 
-    : `/api/image-proxy?url=${encodeURIComponent(image.url || image.thumbnailUrl)}`;
+  // Googleのサムネイル画像はCORSでブロックされる可能性があるため、プロキシ経由で取得
+  const imageSrc = image.thumbnailUrl 
+    ? `/api/image-proxy?url=${encodeURIComponent(image.thumbnailUrl)}`
+    : image.url 
+    ? `/api/image-proxy?url=${encodeURIComponent(image.url)}`
+    : '';
+  
+  // デバッグ: 画像URLを確認
+  if (typeof window !== 'undefined' && !imageError) {
+    console.log('画像URL:', {
+      thumbnailUrl: image.thumbnailUrl,
+      url: image.url,
+      imageSrc: imageSrc,
+    });
+  }
 
   // 画像URLが無効な場合のフォールバック
-  const handleImageError = () => {
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    console.error('画像の読み込みに失敗しました:', {
+      thumbnailUrl: image.thumbnailUrl,
+      url: image.url,
+      imageSrc: imageSrc,
+      error: e,
+    });
+    
     if (!imageError) {
       setImageError(true);
-      // プロキシが失敗したら、直接URLを試す
+      // サムネイルが失敗した場合、別のURLを試す
+      if (image.thumbnailUrl && image.url && image.thumbnailUrl !== image.url) {
+        // 既に別のURLを試しているので、エラー状態を維持
+      }
     }
   };
 
@@ -80,29 +103,46 @@ function DraggableImage({ image, index, onRemove }: DraggableImageProps) {
           }
         }}
       >
-        <div className="aspect-square relative bg-gray-100">
-          {!imageError ? (
-            <img
-              src={imageSrc}
-              alt={image.alt || `画像 ${index + 1}`}
-              className="h-full w-full object-cover"
-              onError={handleImageError}
-              referrerPolicy="no-referrer"
-            />
+        {/* デバッグ: 画像情報を表示 */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="absolute top-0 left-0 z-50 bg-black bg-opacity-75 text-white text-xs p-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+            {imageSrc ? 'URL: OK' : 'URL: NG'}
+          </div>
+        )}
+        <div className="aspect-square relative bg-gray-100 overflow-hidden">
+          {imageSrc ? (
+            <>
+              <img
+                src={imageSrc}
+                alt={image.alt || `画像 ${index + 1}`}
+                className="absolute inset-0 h-full w-full object-cover z-10"
+                style={{ 
+                  display: 'block',
+                  maxWidth: '100%',
+                  maxHeight: '100%',
+                }}
+                onError={handleImageError}
+                onLoad={() => {
+                  console.log('✅ 画像読み込み成功:', imageSrc.substring(0, 100));
+                }}
+                onLoadStart={() => {
+                  console.log('🔄 画像読み込み開始:', imageSrc.substring(0, 100));
+                }}
+                loading="lazy"
+              />
+              {imageError && (
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-200 text-gray-500 text-sm z-20">
+                  画像の読み込みに失敗しました
+                </div>
+              )}
+            </>
           ) : (
-            <img
-              src={imageSrc}
-              alt={image.alt || `画像 ${index + 1}`}
-              className="h-full w-full object-cover"
-              onError={(e) => {
-                // 最終的なフォールバック: プレースホルダーを表示
-                const target = e.target as HTMLImageElement;
-                target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2U1ZTdlYiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5Y2EzYWYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj7lm77niYfliqDovb3lpLHotKU8L3RleHQ+PC9zdmc+';
-              }}
-            />
+            <div className="absolute inset-0 flex items-center justify-center text-gray-400 z-10">
+              <span>画像URLがありません</span>
+            </div>
           )}
+          <div className="absolute inset-0 bg-black bg-opacity-0 transition-opacity group-hover:bg-opacity-10 pointer-events-none z-5" />
         </div>
-        <div className="absolute inset-0 bg-black bg-opacity-0 transition-opacity group-hover:bg-opacity-10" />
         {onRemove && (
           <button
             onClick={(e) => {

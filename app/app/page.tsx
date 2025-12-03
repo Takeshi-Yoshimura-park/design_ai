@@ -85,7 +85,7 @@ export default function Home() {
     setError(null);
 
     try {
-      const response = await fetch('/api/search/pinterest', {
+      const response = await fetch('/api/search/google-images', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
