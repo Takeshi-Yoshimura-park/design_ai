@@ -95,10 +95,30 @@ function DraggableImage({ image, index, onRemove }: DraggableImageProps) {
         className="group relative cursor-move overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md"
         {...attributes}
         {...listeners}
-        onClick={() => {
-          if (image.pinterestUrl && image.pinterestUrl.startsWith('http')) {
-            window.open(image.pinterestUrl, '_blank');
-          } else {
+        onClick={(e) => {
+          // ドラッグ中でない場合のみクリック処理を実行
+          if (e.detail === 0) return; // ドラッグイベントの場合は無視
+          
+          // PinterestのURLを優先的に使用
+          const targetUrl = image.pinterestUrl || image.url;
+          
+          console.log('画像クリック:', {
+            pinterestUrl: image.pinterestUrl,
+            url: image.url,
+            targetUrl: targetUrl,
+          });
+          
+          if (targetUrl && targetUrl.startsWith('http')) {
+            // PinterestのURLかどうかを確認
+            if (targetUrl.includes('pinterest.com') || targetUrl.includes('pinterest.jp')) {
+              // PinterestのURLの場合は新しいタブで開く
+              window.open(targetUrl, '_blank', 'noopener,noreferrer');
+            } else {
+              // Pinterest以外のURLの場合も新しいタブで開く（念のため）
+              window.open(targetUrl, '_blank', 'noopener,noreferrer');
+            }
+          } else if (image.url) {
+            // URLが無効な場合は拡大表示
             setSelectedImage(image.url);
           }
         }}
@@ -115,7 +135,7 @@ function DraggableImage({ image, index, onRemove }: DraggableImageProps) {
               <img
                 src={imageSrc}
                 alt={image.alt || `画像 ${index + 1}`}
-                className="absolute inset-0 h-full w-full object-cover z-10"
+                className="absolute inset-0 h-full w-full object-cover z-10 cursor-pointer"
                 style={{ 
                   display: 'block',
                   maxWidth: '100%',
@@ -127,6 +147,32 @@ function DraggableImage({ image, index, onRemove }: DraggableImageProps) {
                 }}
                 onLoadStart={() => {
                   console.log('🔄 画像読み込み開始:', imageSrc.substring(0, 100));
+                }}
+                onClick={(e) => {
+                  e.stopPropagation(); // 親要素のクリックイベントを防ぐ
+                  
+                  // PinterestのURLを優先的に使用
+                  const targetUrl = image.pinterestUrl || image.url;
+                  
+                  console.log('画像クリック:', {
+                    pinterestUrl: image.pinterestUrl,
+                    url: image.url,
+                    targetUrl: targetUrl,
+                  });
+                  
+                  if (targetUrl && targetUrl.startsWith('http')) {
+                    // PinterestのURLかどうかを確認
+                    if (targetUrl.includes('pinterest.com') || targetUrl.includes('pinterest.jp')) {
+                      // PinterestのURLの場合は新しいタブで開く
+                      window.open(targetUrl, '_blank', 'noopener,noreferrer');
+                    } else {
+                      // Pinterest以外のURLの場合も新しいタブで開く（念のため）
+                      window.open(targetUrl, '_blank', 'noopener,noreferrer');
+                    }
+                  } else if (image.url) {
+                    // URLが無効な場合は拡大表示
+                    setSelectedImage(image.url);
+                  }
                 }}
                 loading="lazy"
               />

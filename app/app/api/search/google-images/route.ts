@@ -48,11 +48,22 @@ export async function POST(request: NextRequest) {
 
     // 検索クエリを生成（Pinterestを優先）
     const query = generateSearchQuery(analysisResult, axis, true);
+    console.log('生成された検索クエリ:', query);
 
     // Google画像検索を実行
     const images = await searchGoogleImages(query, apiKey, cseId, 5);
 
     console.log(`Google画像検索結果: ${images.length}枚の画像を取得`);
+
+    // 検索結果が0件の場合のエラーメッセージ
+    if (images.length === 0) {
+      return NextResponse.json({
+        success: false,
+        query: query,
+        images: [],
+        error: 'Pinterestの画像が見つかりませんでした。別の検索軸をお試しください。',
+      }, { status: 200 }); // 200を返して、フロントエンドでエラーメッセージを表示
+    }
 
     return NextResponse.json({
       success: true,

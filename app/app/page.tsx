@@ -103,6 +103,12 @@ export default function Home() {
 
       const data = await response.json();
 
+      // 検索結果が0件の場合のエラーメッセージを表示
+      if (!data.success || data.images.length === 0) {
+        setError(data.error || '画像が見つかりませんでした。別の検索軸をお試しください。');
+        return;
+      }
+
       // 検索結果を追加
       setSearchResults((prev) => [
         ...prev,
