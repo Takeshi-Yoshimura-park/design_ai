@@ -32,6 +32,12 @@ export async function POST(request: NextRequest) {
     // Pinterestから画像を検索
     const images = await searchPinterestImages(query, 5);
 
+    // デバッグ用: 取得した画像URLをログ出力
+    console.log(`取得した画像数: ${images.length}`);
+    images.forEach((img, idx) => {
+      console.log(`画像${idx + 1}: ${img.thumbnailUrl || img.url}`);
+    });
+
     return NextResponse.json({
       success: true,
       query: query,

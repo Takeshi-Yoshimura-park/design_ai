@@ -50,6 +50,19 @@ function DraggableImage({ image, index, onRemove }: DraggableImageProps) {
   };
 
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [imageError, setImageError] = useState(false);
+  const [imageSrc, setImageSrc] = useState(image.thumbnailUrl || image.url);
+
+  // 画像URLが無効な場合のフォールバック
+  const handleImageError = () => {
+    if (!imageError) {
+      setImageError(true);
+      // サムネイルが失敗したら、元のURLを試す
+      if (imageSrc === image.thumbnailUrl && image.url !== image.thumbnailUrl) {
+        setImageSrc(image.url);
+      }
+    }
+  };
 
   return (
     <>
@@ -67,14 +80,29 @@ function DraggableImage({ image, index, onRemove }: DraggableImageProps) {
           }
         }}
       >
-        <div className="aspect-square relative">
-          <Image
-            src={image.thumbnailUrl || image.url}
-            alt={image.alt || `画像 ${index + 1}`}
-            fill
-            className="object-cover"
-            sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 20vw"
-          />
+        <div className="aspect-square relative bg-gray-100">
+          {!imageError ? (
+            <Image
+              src={imageSrc}
+              alt={image.alt || `画像 ${index + 1}`}
+              fill
+              className="object-cover"
+              sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 20vw"
+              unoptimized
+              onError={handleImageError}
+            />
+          ) : (
+            <img
+              src={imageSrc}
+              alt={image.alt || `画像 ${index + 1}`}
+              className="h-full w-full object-cover"
+              onError={(e) => {
+                // 最終的なフォールバック: プレースホルダーを表示
+                const target = e.target as HTMLImageElement;
+                target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2U1ZTdlYiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5Y2EzYWYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj7lm77niYfliqDovb3lpLHotKU8L3RleHQ+PC9zdmc+';
+              }}
+            />
+          )}
         </div>
         <div className="absolute inset-0 bg-black bg-opacity-0 transition-opacity group-hover:bg-opacity-10" />
         {onRemove && (
@@ -110,11 +138,9 @@ function DraggableImage({ image, index, onRemove }: DraggableImageProps) {
           onClick={() => setSelectedImage(null)}
         >
           <div className="relative max-h-[90vh] max-w-[90vw]">
-            <Image
+            <img
               src={selectedImage}
               alt="拡大表示"
-              width={800}
-              height={800}
               className="max-h-[90vh] max-w-[90vw] object-contain"
             />
             <button

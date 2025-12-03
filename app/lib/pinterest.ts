@@ -34,17 +34,34 @@ export async function searchPinterestImages(
     $('img').each((_, element) => {
       if (images.length >= limit) return false;
       
-      const src = $(element).attr('src') || $(element).attr('data-src');
+      let src = $(element).attr('src') || $(element).attr('data-src') || $(element).attr('data-lazy-src');
       const alt = $(element).attr('alt') || '';
       
+      // 相対URLを絶対URLに変換
+      if (src && src.startsWith('//')) {
+        src = 'https:' + src;
+      } else if (src && src.startsWith('/')) {
+        src = 'https://www.pinterest.jp' + src;
+      }
+      
       if (src && src.includes('pinimg.com') && !seenUrls.has(src)) {
+        // URLの検証（有効な画像URLかチェック）
+        if (!src.match(/\.(jpg|jpeg|png|webp|gif)/i) && !src.includes('pinimg.com')) {
+          return;
+        }
+        
         seenUrls.add(src);
         
         // サムネイルURLを高解像度URLに変換
         let highResUrl = src;
         if (src.includes('236x') || src.includes('474x')) {
           highResUrl = src.replace(/236x/, '564x').replace(/474x/, '564x');
+        } else if (src.includes('originals')) {
+          // originalsフォルダの画像はそのまま使用
+          highResUrl = src;
         }
+        
+        console.log(`画像URL取得: ${src} -> ${highResUrl}`);
         
         images.push({
           url: highResUrl,
@@ -61,23 +78,37 @@ export async function searchPinterestImages(
         if (images.length >= limit) return false;
         
         const img = $(element).find('img').first();
-        const src = img.attr('src') || img.attr('data-src');
+        let src = img.attr('src') || img.attr('data-src') || img.attr('data-lazy-src');
         const alt = img.attr('alt') || '';
         const pinLink = $(element).find('a').first().attr('href');
         
+        // 相対URLを絶対URLに変換
+        if (src && src.startsWith('//')) {
+          src = 'https:' + src;
+        } else if (src && src.startsWith('/')) {
+          src = 'https://www.pinterest.jp' + src;
+        }
+        
         if (src && src.includes('pinimg.com') && !seenUrls.has(src)) {
+          // URLの検証
+          if (!src.match(/\.(jpg|jpeg|png|webp|gif)/i) && !src.includes('pinimg.com')) {
+            return;
+          }
+          
           seenUrls.add(src);
           
           let highResUrl = src;
           if (src.includes('236x') || src.includes('474x')) {
             highResUrl = src.replace(/236x/, '564x').replace(/474x/, '564x');
+          } else if (src.includes('originals')) {
+            highResUrl = src;
           }
           
           images.push({
             url: highResUrl,
             thumbnailUrl: src,
             alt: alt || query,
-            pinterestUrl: pinLink ? `https://www.pinterest.jp${pinLink}` : '',
+            pinterestUrl: pinLink ? (pinLink.startsWith('http') ? pinLink : `https://www.pinterest.jp${pinLink}`) : '',
           });
         }
       });
