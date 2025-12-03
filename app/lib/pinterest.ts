@@ -89,6 +89,11 @@ export async function searchPinterestImages(
         
         // HTMLを取得
         html = await page.content();
+        console.log(`取得したHTMLの長さ: ${html.length}文字`);
+        
+        // 画像要素の数を確認
+        const imgCount = await page.$$eval('img[src*="pinimg.com"]', (imgs: any[]) => imgs.length);
+        console.log(`pinimg.comを含む画像要素数: ${imgCount}`);
       } finally {
         await page.close();
       }
@@ -171,22 +176,28 @@ export async function searchPinterestImages(
 
     // 方法2: imgタグから直接抽出（フォールバック）
     if (images.length < limit) {
-      $('img').each((_, element) => {
+      const allImgs = $('img');
+      console.log(`HTML内の全imgタグ数: ${allImgs.length}`);
+      
+      allImgs.each((_, element) => {
         if (images.length >= limit) return false;
         
-        let src = $(element).attr('src') || $(element).attr('data-src') || $(element).attr('data-lazy-src');
+        let src = $(element).attr('src') || $(element).attr('data-src') || $(element).attr('data-lazy-src') || $(element).attr('data-original');
         const alt = $(element).attr('alt') || '';
         
+        if (!src) return;
+        
         // 相対URLを絶対URLに変換
-        if (src && src.startsWith('//')) {
+        if (src.startsWith('//')) {
           src = 'https:' + src;
-        } else if (src && src.startsWith('/')) {
+        } else if (src.startsWith('/')) {
           src = 'https://www.pinterest.jp' + src;
         }
         
-        if (src && src.includes('pinimg.com') && !seenUrls.has(src)) {
+        if (src.includes('pinimg.com') && !seenUrls.has(src)) {
           // URLの検証（有効な画像URLかチェック）
-          if (!src.match(/\.(jpg|jpeg|png|webp|gif)/i) && !src.includes('pinimg.com')) {
+          // pinimg.comを含む場合は拡張子チェックを緩和
+          if (!src.match(/pinimg\.com/)) {
             return;
           }
           
@@ -198,9 +209,12 @@ export async function searchPinterestImages(
             highResUrl = src.replace(/236x/, '564x').replace(/474x/, '564x');
           } else if (src.includes('originals')) {
             highResUrl = src;
+          } else if (src.includes('564x')) {
+            // 既に564xの場合はそのまま
+            highResUrl = src;
           }
           
-          console.log(`画像URL取得（imgタグ）: ${src.substring(0, 100)}...`);
+          console.log(`画像URL取得（imgタグ）: ${src.substring(0, 150)}...`);
           
           images.push({
             url: highResUrl,
@@ -218,9 +232,18 @@ export async function searchPinterestImages(
     );
 
     console.log(`Pinterest検索結果: ${uniqueImages.length}枚の画像を取得`);
+    
+    // 取得した画像URLをログ出力
+    if (uniqueImages.length > 0) {
+      console.log('取得した画像URL:');
+      uniqueImages.slice(0, 5).forEach((img, idx) => {
+        console.log(`  ${idx + 1}. ${img.url.substring(0, 150)}...`);
+      });
+    }
 
     if (uniqueImages.length === 0) {
       console.warn('Pinterestから画像を取得できませんでした。HTML構造が変更された可能性があります。');
+      console.warn(`HTMLの最初の1000文字: ${html.substring(0, 1000)}`);
       // フォールバック: 検索URLを返す
       return [{
         url: searchUrl,
