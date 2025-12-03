@@ -17,23 +17,58 @@ export function getGeminiClient() {
  * 画像を分析する
  */
 export async function analyzeImage(imageBase64: string, mimeType: string) {
-  const genAI = getGeminiClient();
-  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
+  try {
+    const genAI = getGeminiClient();
+    
+    // 利用可能なモデルを試す（新しいモデルから順に）
+    const models = [
+      'gemini-2.5-flash',
+      'gemini-2.0-flash',
+      'gemini-flash-latest',
+      'gemini-pro-latest',
+      'gemini-1.5-flash',
+      'gemini-pro',
+    ];
+    let lastError: Error | null = null;
+    
+    for (const modelName of models) {
+      try {
+        console.log(`Trying model: ${modelName}`);
+        const model = genAI.getGenerativeModel({ model: modelName });
 
-  const prompt = getAnalysisPrompt();
+        const prompt = getAnalysisPrompt();
 
-  const imagePart = {
-    inlineData: {
-      data: imageBase64,
-      mimeType: mimeType,
-    },
-  };
+        const imagePart = {
+          inlineData: {
+            data: imageBase64,
+            mimeType: mimeType,
+          },
+        };
 
-  const result = await model.generateContent([prompt, imagePart]);
-  const response = await result.response;
-  const text = response.text();
+        const result = await model.generateContent([prompt, imagePart]);
+        const response = await result.response;
+        const text = response.text();
 
-  return parseAnalysisResult(text);
+        console.log(`Success with model: ${modelName}`);
+        return parseAnalysisResult(text);
+      } catch (error: any) {
+        console.error(`Model ${modelName} failed:`, error.message);
+        lastError = error;
+        // 404エラーの場合は次のモデルを試す
+        if (error.message?.includes('404') || error.message?.includes('not found')) {
+          continue;
+        }
+        // その他のエラーは即座にスロー
+        throw error;
+      }
+    }
+    
+    // すべてのモデルが失敗した場合
+    throw lastError || new Error('All models failed');
+  } catch (error: any) {
+    console.error('analyzeImage error:', error);
+    throw error;
+  }
 }
 
 /**

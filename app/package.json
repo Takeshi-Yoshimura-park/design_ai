@@ -15,9 +15,11 @@
     "@google/generative-ai": "^0.24.1",
     "axios": "^1.13.2",
     "cheerio": "^1.1.2",
+    "dotenv": "^17.2.3",
     "next": "16.0.6",
     "react": "19.2.0",
     "react-dom": "19.2.0",
+    "react-dropzone": "^14.3.8",
     "sharp": "^0.34.5"
   },
   "devDependencies": {
