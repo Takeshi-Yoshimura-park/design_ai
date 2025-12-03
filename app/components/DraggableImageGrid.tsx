@@ -51,16 +51,16 @@ function DraggableImage({ image, index, onRemove }: DraggableImageProps) {
 
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [imageError, setImageError] = useState(false);
-  const [imageSrc, setImageSrc] = useState(image.thumbnailUrl || image.url);
+  // 画像プロキシAPIを使用してCORS問題を回避
+  const imageSrc = imageError 
+    ? image.thumbnailUrl || image.url 
+    : `/api/image-proxy?url=${encodeURIComponent(image.url || image.thumbnailUrl)}`;
 
   // 画像URLが無効な場合のフォールバック
   const handleImageError = () => {
     if (!imageError) {
       setImageError(true);
-      // サムネイルが失敗したら、元のURLを試す
-      if (imageSrc === image.thumbnailUrl && image.url !== image.thumbnailUrl) {
-        setImageSrc(image.url);
-      }
+      // プロキシが失敗したら、直接URLを試す
     }
   };
 
@@ -87,7 +87,7 @@ function DraggableImage({ image, index, onRemove }: DraggableImageProps) {
               alt={image.alt || `画像 ${index + 1}`}
               className="h-full w-full object-cover"
               onError={handleImageError}
-              crossOrigin="anonymous"
+              referrerPolicy="no-referrer"
             />
           ) : (
             <img
