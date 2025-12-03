@@ -28,6 +28,20 @@ WORKDIR /app
 ENV NODE_ENV production
 ENV NEXT_TELEMETRY_DISABLED 1
 
+# Chromium実行に必要な依存関係をインストール
+RUN apk add --no-cache \
+    chromium \
+    nss \
+    freetype \
+    freetype-dev \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont
+
+# Chromiumのパスを環境変数に設定
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+
 # 必要なユーザーとグループを作成
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
